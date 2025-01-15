@@ -1,0 +1,29 @@
+---
+# This workflow integrates ShiftLeft NG SAST with GitHub
+# Visit https://docs.shiftleft.io for help
+name: Qwiet
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  NextGen-Static-Analysis:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download Qwiet CLI
+      run: |
+        curl https://cdn.shiftleft.io/download/sl > ${GITHUB_WORKSPACE}/sl && chmod a+rx ${GITHUB_WORKSPACE}/sl
+    - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+          # the sl analyze command below needs to have app name specified and location of C/C++ files.
+    - name: NextGen Static Analysis
+      run: ${GITHUB_WORKSPACE}/sl analyze --strict --wait --app Qwiet-CPP --tag branch=${{ github.head_ref || steps.extract_branch.outputs.branch }} --c --cpg .
+      env:
+        SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
+        SHIFTLEFT_API_HOST: www.shiftleft.io
+        SHIFTLEFT_GRPC_TELEMETRY_HOST: telemetry.shiftleft.io:443
+        SHIFTLEFT_GRPC_API_HOST: api.shiftleft.io:443
